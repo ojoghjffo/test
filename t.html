@@ -1,0 +1,1790 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>YouTube Comments Viewer — updated</title>
+
+  <!-- Material Symbols (Google) -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  <!-- Roboto Regular + Medium for views/date and like text -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --page-bg: #f2f2f2;
+      --app-bg: #ffffff;
+      --text: #111;
+      --muted: #555;
+      --card-shadow: rgba(0,0,0,0.06);
+
+      --badge-bg-pinned: #ffefc1;
+      --badge-color-pinned: #8a5b00;
+      --badge-bg-legacy: #efefef;
+      --badge-color-legacy: #555;
+      --badge-bg-hearted: #ffeef0;
+      --badge-color-hearted: #b12240;
+
+      --reply-line: #cbcbcb;
+      --avatar-fallback: #cbcbcb;
+      --showmore-color: #065fd4;
+      --control-border: rgba(0,0,0,0.06);
+      --control-bg: transparent;
+      --control-color: var(--text);
+
+      /* like text color defaults (light) */
+      --like-text: rgb(15,15,15);
+
+      /* description box defaults (light theme) */
+      --desc-bg: #f2f2f2;
+      --desc-hover: #eaeaea;
+      --desc-text: #0f0f0f;
+      --desc-muted: var(--muted);
+    }
+
+    /* YouTube Gray */
+    body.yt-gray {
+      --page-bg: #303030;
+      --app-bg: #4A4A4A;
+      --text: #e8e8e8;
+      --muted: #cfcfcf;
+      --card-shadow: rgba(0,0,0,0.4);
+
+      --badge-bg-pinned: #ffd88a;
+      --badge-color-pinned: #40361f;
+      --badge-bg-legacy: #ddd;
+      --badge-color-legacy: #2f2f2f;
+      --badge-bg-hearted: #ff9fb0;
+      --badge-color-hearted: #3b1418;
+
+      --reply-line: #3b3b3b;
+      --avatar-fallback: #e8e8e8;
+      --showmore-color: #7fb6ff;
+      --control-border: rgba(255,255,255,0.06);
+      --control-bg: rgba(255,255,255,0.02);
+      --control-color: var(--text);
+
+      --desc-bg: #616161;
+      --desc-hover: #5a5a5a;
+      --desc-text: #f2f2f2;
+      --desc-muted: #e0e0e0;
+
+      --like-text: rgb(241,241,241);
+    }
+
+    /* YouTube Dark */
+    body.yt-dark {
+      --page-bg: #1c1c1c;
+      --app-bg: #0f0f0f;
+      --text: #e8e8e8;
+      --muted: #cfcfcf;
+      --card-shadow: rgba(0,0,0,0.4);
+
+      --badge-bg-pinned: #ffd88a;
+      --badge-color-pinned: #40361f;
+      --badge-bg-legacy: #ddd;
+      --badge-color-legacy: #2f2f2f;
+      --badge-bg-hearted: #ff9fb0;
+      --badge-color-hearted: #3b1418;
+
+      --reply-line: #3b3b3b;
+      --avatar-fallback: #e8e8e8;
+      --showmore-color: #7fb6ff;
+      --control-border: rgba(255,255,255,0.06);
+      --control-bg: rgba(255,255,255,0.02);
+      --control-color: var(--text);
+
+      --desc-bg: #272727;
+      --desc-hover: #3b3b3b;
+      --desc-text: #f2f2f2;
+      --desc-muted: #cfcfcf;
+
+      --like-text: rgb(241,241,241);
+    }
+
+    html,body{height:100%;}
+    body { font-family: Arial, sans-serif; background:var(--page-bg); margin:0; padding:24px; color:var(--text); }
+    #app { max-width:980px; margin: auto; background:var(--app-bg); padding:20px; border-radius:12px; box-shadow: 0 6px 18px var(--card-shadow); color:var(--text); }
+
+    h2 { margin:0 0 12px 0; }
+
+    .video-meta { border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:12px; margin-bottom:12px; }
+    .video-title { font-size:18px; font-weight:700; margin-bottom:6px; color:var(--text); }
+    .video-title a { color:inherit; text-decoration:none; }
+    .video-title a:hover { text-decoration:underline; }
+
+    .meta-row { display:flex; gap:12px; align-items:center; color:var(--muted); font-size:13px; flex-wrap:wrap; }
+    .date-row { display:flex; gap:16px; margin-top:8px; color:var(--muted); font-size:13px; align-items:center; flex-wrap:wrap; }
+
+    .visibility-badge { background: rgba(0,0,0,0.06); color:var(--muted); padding:4px 8px; border-radius:10px; font-size:13px; }
+    body.yt-gray .visibility-badge, body.yt-dark .visibility-badge { background: rgba(255,255,255,0.06); color:var(--muted); }
+
+    /* ---------------- Video details (channel + likes) ---------------- */
+    .video-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;    /* user requested */
+        margin-bottom: 20px; /* user requested */
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    /* Channel Section */
+    .channel-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+    }
+
+    /* profile pic intentionally present in DOM but hidden per user request */
+    .channel-img { display:none; }
+
+    .channel-text h4 {
+        font-size: 16px;
+        margin: 0 0 2px 0;
+    }
+
+    .channel-text p {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 0;
+    }
+
+    /* Like Section */
+    .like-stat {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: default;
+        user-select: none;
+        color: var(--like-text);
+        font-family: 'Roboto', Arial, sans-serif;
+        font-weight: 500;
+    }
+    .like-stat .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20; font-size:18px; vertical-align:middle; color:var(--like-text); }
+
+    /* ---------------- Description box styles (YouTube-like) ---------------- */
+    .description-box {
+      background: var(--desc-bg);
+      color: var(--desc-text);
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.15s;
+      margin-top: 8px;
+      line-height: 1.4;
+      border: 1px solid rgba(0,0,0,0.04);
+    }
+    body.yt-gray .description-box, body.yt-dark .description-box {
+      border: 1px solid rgba(255,255,255,0.03);
+    }
+    .description-box:hover { background: var(--desc-hover); }
+
+    /* views/date line */
+    .views-date {
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: var(--desc-text);
+      font-family: 'Roboto', Arial, sans-serif;
+      font-weight: 500; /* Roboto Medium 500 */
+    }
+    .views-date.collapsed { }
+
+    /* clamp to 2 lines when collapsed */
+    .desc-text.collapsed {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .desc-text.expanded {
+      display: block;
+      white-space: pre-wrap;
+      color: var(--desc-text);
+      font-family: Arial, sans-serif;
+    }
+
+    /* placeholder when no description present */
+    .desc-text.empty {
+      font-family: 'Roboto', Arial, sans-serif;
+      font-weight: 400;
+      font-style: italic;
+      color: rgb(170,170,170);
+    }
+
+    .show-more-btn {
+      font-weight: 700;
+      margin-top: 8px;
+      display: inline-block;
+      font-size: 13px;
+      color: var(--showmore-color);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    /* hide viewCount & publishedDate above description (user requested) */
+    #viewCount { display:none !important; }
+    #publishedDate { display:none !important; }
+
+    /* hide the old Likes and Uploader text as requested (keeps elements for JS but makes them invisible) */
+    #videoLikeCount { display: none !important; }
+    #uploaderWrap { display: none !important; }
+    #subscriberCount { display: none !important; }
+
+    /* controls layout */
+    .controls { display:flex; flex-direction:column; align-items:center; gap:8px; margin-top:8px; margin-bottom:12px; width:100%; }
+    .controls-top { display:flex; gap:12px; align-items:center; flex-wrap:nowrap; overflow-x:auto; padding-bottom:6px; }
+    .controls-bottom { display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap; width:100%; max-width:900px; }
+
+    .control-item { display:flex; gap:8px; align-items:center; font-size:15px; color:var(--muted); flex: 0 0 auto; white-space:nowrap; }
+    .control-item label { font-weight:400; color:var(--muted); margin:0; }
+
+    /* search placement */
+    .controls-search { width:100%; display:flex; justify-content:center; margin-bottom:6px; }
+    #searchBar { width:100%; max-width:720px; padding:8px; margin-bottom:0; font-size:14px; background:transparent; border:1px solid var(--control-border); color:var(--text); border-radius:6px; }
+
+    /* white dropdown, native rendering */
+    .force-white {
+      background: #ffffff !important;
+      color: #111 !important;
+      border: 1px solid #cfcfcf !important;
+      -webkit-appearance: auto !important;
+      appearance: auto !important;
+      border-radius: initial !important;
+      padding: initial !important;
+      height: auto !important;
+    }
+
+    .small-control { font-size:15px; padding:4px 6px; background-clip: padding-box; }
+
+    /* Per-page select specifically rounded */
+    #pageSizeSelect { border-radius:6px !important; }
+
+    /* comments */
+    .comment { display:flex; margin-top:20px; align-items:flex-start; position:relative; }
+    .avatar, .avatar-fallback { width:40px; height:40px; border-radius:50%; margin-right:12px; object-fit:cover; flex-shrink:0; display:inline-block; }
+    .avatar-fallback { background:var(--avatar-fallback); }
+    .comment-body { flex:1; min-width:0; }
+    .author-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .author { font-weight:700; font-size:14px; display:flex; align-items:center; gap:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .meta { color:var(--muted); font-size:12px; cursor:pointer; }
+    .text { margin-top:6px; white-space:pre-wrap; font-size:14px; color:var(--text); }
+
+    /* comment like text: Roboto 500 and color depends on theme via --like-text */
+    .likes { font-size:12px; color:var(--like-text); margin-top:6px; display:inline-flex; align-items:center; gap:6px; font-family: 'Roboto', Arial, sans-serif; font-weight:500; }
+
+    /* Reply button style */
+    .reply-toggle { display:inline-flex; align-items:center; gap:8px; margin-top:10px; padding:8px 12px; border-radius:8px; border:1px solid var(--control-border); background: var(--control-bg); color: var(--showmore-color); font-weight:700; font-size:13px; cursor:pointer; transition: background .12s ease, transform .06s ease; }
+    body.yt-gray .reply-toggle:hover, body.yt-dark .reply-toggle:hover { background: rgba(255,255,255,0.03); }
+
+    .indent { margin-left:0px; border-left:2px solid var(--reply-line); padding-left:14px; }
+
+    mark { background: #ffeb3b44; color:inherit; }
+
+    /* clickable reply-line handle */
+    .reply-line-handle {
+      position: absolute;
+      left: 52px;
+      top: 0;
+      bottom: 0;
+      width: 12px;
+      cursor: pointer;
+      background: transparent;
+      z-index: 5;
+    }
+    .reply-line-handle:hover { background: rgba(0,0,0,0.02); }
+    body.yt-gray .reply-line-handle:hover, body.yt-dark .reply-line-handle:hover { background: rgba(255,255,255,0.02); }
+
+    /* star button */
+    .star-btn { border: none; background: transparent; padding: 6px; margin-left: 8px; cursor: pointer; border-radius:6px; }
+    .star-btn svg { width:18px; height:18px; display:block; }
+    .star-btn .star-outline { fill: none; stroke: #666; stroke-width:1.2; }
+    .star-btn .star-filled  { fill: #ffcc33; stroke: #e6b800; display:none; }
+    .star-btn.starred .star-outline { display:none; }
+    .star-btn.starred .star-filled { display:block; }
+
+    /* badges bold (no verified badge anymore) */
+    .pinned-badge, .hearted-badge, .legacy-badge { padding:2px 6px; border-radius:12px; font-size:11px; margin-left:6px; font-weight:700; }
+    .pinned-badge { background:var(--badge-bg-pinned); color:var(--badge-color-pinned); }
+    .hearted-badge { background:var(--badge-bg-hearted); color:var(--badge-color-hearted); }
+    .legacy-badge { background:var(--badge-bg-legacy); color:var(--badge-color-legacy); }
+
+    .material-symbols-outlined.verified-icon {
+      font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 20;
+      font-size: 14px;
+      margin-left: 6px;
+      vertical-align: middle;
+      color: inherit;
+      display: inline-block;
+      line-height: 1;
+    }
+
+    /* author/channel links inherit color + no underline by default */
+    #app a, #app a:link, #app a:visited, #app a:active { color:inherit !important; text-decoration: none !important; }
+    #app a:hover { text-decoration: underline !important; }
+
+    /* uploader handle (comment-level) */
+    #app a.uploader-handle { display: inline-block; padding: 2px 6px; border-radius: 6px; font-weight: 700; text-decoration: none; line-height: 1; border: 1px solid rgba(0,0,0,0.06); background: #111 !important; color: #ffffff !important; box-shadow: none !important; }
+    body.yt-gray #app a.uploader-handle, body.yt-dark #app a.uploader-handle { background: #ffffff !important; color: #000000 !important; border: 1px solid rgba(0,0,0,0.08) !important; box-shadow: none !important; }
+
+    .comment-actions { display:flex; gap:8px; align-items:center; margin-top:6px; }
+    .count-bubble { background:rgba(255,255,255,0.03); padding:4px 8px; border-radius:12px; font-size:12px; color:var(--text); border:1px solid rgba(0,0,0,0.05); }
+
+    .timelapse { font-size:12px; color:var(--muted); margin-top:4px; }
+
+    .show-more-btn { margin-top:8px; display:inline-block; background:transparent; color:var(--showmore-color); border:none; padding:0; font-size:13px; cursor:pointer; font-weight:600; }
+
+    /* pagination */
+    .pagination { display:flex; gap:8px; align-items:center; justify-content:flex-end; margin:12px 0; flex-wrap:wrap; }
+    .page-btn { padding:6px 10px; background:var(--control-bg); border:1px solid var(--control-border); border-radius:6px; cursor:pointer; color:var(--control-color); font-size:14px; }
+    .page-btn[disabled] { opacity:0.35; cursor:not-allowed; }
+    .page-info { margin-right:auto; color:var(--muted); font-size:15px; }
+    .page-size { padding:6px; border-radius:6px; border:1px solid var(--control-border); background:var(--control-bg); color:var(--control-color); font-size:15px; }
+
+    .goto-input { width:64px; padding:6px 8px; border-radius:6px; border:1px solid var(--control-border); background:var(--control-bg); color:var(--control-color); font-size:15px; }
+
+    .orig-snippet { margin-bottom:8px; padding:10px; border-radius:8px; background: rgba(0,0,0,0.03); border:1px solid rgba(0,0,0,0.04); }
+    body.yt-gray .orig-snippet, body.yt-dark .orig-snippet { background: rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.03); }
+
+    @media (max-width:920px){
+      .controls-top { padding-bottom:6px; }
+      .controls-bottom { flex-direction:column; align-items:center; gap:8px; }
+      .controls-search { width:100%; }
+      #searchBar { max-width:100%; }
+      .reply-line-handle { left: 46px; } /* slightly shift on small screens */
+      .video-details { gap:8px; }
+    }
+  </style>
+</head>
+<body>
+<div id="app" aria-live="polite">
+  <h2>YouTube Comments Viewer</h2>
+
+  <div class="video-meta" id="videoMeta" style="display:none;">
+    <div class="video-title" id="videoTitle"></div>
+
+    <div class="meta-row">
+      <div class="count-bubble" id="viewCount"></div>
+      <div class="count-bubble" id="videoLikeCount"></div>
+      <div class="count-bubble" id="subscriberCount"></div>
+      <div class="visibility-badge" id="videoVisibility" style="display:none;"></div>
+      <div class="small" id="uploaderWrap"></div>
+    </div>
+
+    <div class="date-row" id="dateRow" style="display:none;">
+      <div class="small" id="publishedDate"></div>
+      <div class="small" id="archivedDate"></div>
+    </div>
+
+    <!-- NEW: Channel info (directly above description box) -->
+    <div class="video-details" id="videoDetails" style="display:none;">
+      <div class="channel-info" id="channelInfo" role="link" tabindex="0">
+        <!-- profile picture intentionally hidden per user request -->
+        <div class="channel-text">
+          <h4 id="channelName">Channel</h4>
+          <p id="channelSubs">0 subscribers</p>
+        </div>
+      </div>
+
+      <div class="like-stat" id="likeStat">
+        <span class="material-symbols-outlined" aria-hidden="true">thumb_up</span>
+        <span id="likeStatCount">0</span>
+      </div>
+    </div>
+    <!-- END channel info -->
+
+    <!-- YouTube-like description box -->
+    <div id="descBoxContainer" style="margin-top:8px;">
+      <div class="description-box" id="descBox" role="button" aria-expanded="false" tabindex="0">
+        <div class="views-date collapsed" id="viewDateText">0 views&nbsp;&nbsp;N/A</div>
+        <div class="desc-text collapsed" id="descContent"></div>
+        <button class="show-more-btn" id="showMoreText" type="button" aria-controls="descContent">...more</button>
+      </div>
+    </div>
+    <!-- END description box -->
+
+  </div>
+
+  <!-- file picker with allow-multiple checkbox, prev/next controls and indicator -->
+  <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+    <input id="fileInput" type="file" accept=".json" aria-label="Upload info.json files">
+    <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted);">
+      <input id="allowMultipleFiles" type="checkbox" /> Allow multiple files
+    </label>
+
+    <!-- prev/next and indicator area (hidden when multiple is not allowed) -->
+    <div id="multiControls" style="display:none; align-items:center; gap:8px;">
+      <button id="prevFile" class="page-btn" title="Previous file">&lt;</button>
+      <button id="nextFile" class="page-btn" title="Next file">&gt;</button>
+      <div id="fileIndicator" style="color:var(--muted); font-size:14px; display:inline-flex; align-items:center; gap:8px;"></div>
+      <button id="clearFiles" class="clear-files-btn" title="Remove all loaded files" aria-label="Clear all files">×</button>
+    </div>
+  </div>
+
+  <div class="controls-search">
+    <input id="searchBar" placeholder="Search comments..." aria-label="Search comments" />
+  </div>
+
+  <div class="controls" role="region" aria-label="controls">
+    <div class="controls-top" id="controlsTop">
+      <div class="control-item">
+        <label for="sort">Sort:</label>
+        <select id="sort" class="force-white small-control" title="Sort comments">
+          <option value="likes_desc" selected>Most likes (default)</option>
+          <option value="likes_asc">Least likes</option>
+          <option value="replies_desc">Most replies</option>
+          <option value="replies_asc">Least replies</option>
+          <option value="new">Newest first</option>
+          <option value="old">Oldest first</option>
+        </select>
+      </div>
+
+      <div class="control-item">
+        <label><input id="showAllReplies" type="checkbox" /> <span style="margin-left:6px;">Expand replies by default</span></label>
+      </div>
+
+      <div class="control-item">
+        <label for="themeSelect">Theme:</label>
+        <select id="themeSelect" class="force-white small-control" title="Theme">
+          <option value="light">Light (default)</option>
+          <option value="yt-gray">YouTube Gray</option>
+          <option value="yt-dark">YouTube Dark</option>
+        </select>
+      </div>
+
+      <div class="control-item">
+        <label for="dateFormat">Date format:</label>
+        <select id="dateFormat" class="force-white small-control" title="Choose date format">
+          <option value="numeric">11/12/2025, 3:49:21 PM</option>
+          <option value="short">Nov 12, 2025, 3:49:21 PM</option>
+          <option value="long">November 12, 2025, 3:49:21 PM</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="controls-bottom" id="controlsBottom">
+      <div class="control-item">
+        <label><input type="checkbox" id="flattenReplies" /> <span style="margin-left:6px;">Flatten replies</span></label>
+      </div>
+
+      <div class="control-item">
+        <label for="dateFilterSelect">Filter by date:</label>
+        <select id="dateFilterSelect" class="force-white small-control" title="Filter comments by date">
+          <option value="all">All comments</option>
+          <option value="last24">Last 24 hours</option>
+          <option value="last7">Last 7 days</option>
+          <option value="last30">Last 30 days</option>
+          <option value="thisyear">This year</option>
+          <option value="custom">Custom range</option>
+        </select>
+        <span id="customDateInputs" style="display:none; margin-left:8px; align-items:center; gap:6px;">
+          <input type="datetime-local" id="dateFrom" /> to
+          <input type="datetime-local" id="dateTo" />
+          <button id="applyDateFilter" class="page-btn" style="padding:6px 8px;">Apply</button>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="pagination" id="paginationControls" style="display:none;">
+    <div class="page-info" id="pageInfo">Showing 0–0 of 0 comments</div>
+
+    <label style="font-size:15px; color:var(--muted);">Per page:
+      <select id="pageSizeSelect" class="page-size force-white" title="Comments per page">
+        <option value="10">10</option>
+        <option value="25">25</option>
+        <option value="50" selected>50</option>
+        <option value="100">100</option>
+      </select>
+    </label>
+
+    <button id="firstPage" class="page-btn">« First</button>
+    <button id="prevPage" class="page-btn">‹ Prev</button>
+    <span style="font-size:15px; color:var(--muted)">Page</span>
+    <input id="gotoPage" class="goto-input" type="number" min="1" value="1" />
+    <span id="totalPages" style="font-size:15px; color:var(--muted)"></span>
+    <button id='nextPage' class='page-btn'>Next ›</button>
+    <button id='lastPage' class='page-btn'>Last »</button>
+  </div>
+
+  <div id="comments" aria-live="polite"></div>
+</div>
+
+<script>
+/* ---------- Helpers for extracting video id from info.json ---------- */
+function extractVideoIdFromMeta(meta){
+  if(!meta) return null;
+  if(meta.id) return String(meta.id);
+  if(meta.video_id) return String(meta.video_id);
+  if(meta.webpage_url){
+    try {
+      const u = String(meta.webpage_url);
+      const m = u.match(/[?&]v=([^&]+)/);
+      if(m) return decodeURIComponent(m[1]);
+      const m2 = u.match(/youtu\.be\/([A-Za-z0-9_-]+)/);
+      if(m2) return m2[1];
+      const m3 = u.match(/\/watch\/([A-Za-z0-9_-]+)/);
+      if(m3) return m3[1];
+    } catch(e){}
+  }
+  return null;
+}
+
+/* ---------- Multi-file state ---------- */
+let loadedFiles = []; // { name, json }
+let activeFileIndex = -1;
+let allowMultipleFiles = false;
+
+/* ---------- Combined-comments state (derived) ---------- */
+let combinedCommentsMap = {}; // id -> comment (dedup)
+let rawComments = []; // derived array from combinedCommentsMap
+let mapById = {};
+
+/* ---------- Other state ---------- */
+let videoMeta = {}; // currently active file's meta (for title/desc display)
+let videoId = null;
+let expanded = {};               // persistent map of expanded comment ids
+let showAllRepliesDefault = false;
+const SHOW_MORE_CUTOFF = 240;
+let dateFormatOption = localStorage.getItem('yt_comments_date_format') || 'numeric';
+let flattenReplies = (localStorage.getItem('yt_comments_flatten') === 'true');
+
+let dateFilterOption = localStorage.getItem('yt_comments_date_filter') || 'all';
+let dateFilterCustomFrom = localStorage.getItem('yt_comments_date_from') || '';
+let dateFilterCustomTo = localStorage.getItem('yt_comments_date_to') || '';
+
+let starredSet = new Set();
+try {
+  const s = JSON.parse(localStorage.getItem('yt_starred_comments') || '[]');
+  if(Array.isArray(s)) s.forEach(id => { if(id) starredSet.add(String(id)); });
+} catch(e){ starredSet = new Set(); }
+
+let pageSize = Number(localStorage.getItem('yt_comments_page_size') || 50);
+let currentPage = 1;
+let lastRenderedRoots = [];
+
+/* ---------- Description box state & elements ---------- */
+let descExpanded = false; // toggled by clicking the description
+const descBox = document.getElementById('descBox');
+const descContent = document.getElementById('descContent');
+const viewDateText = document.getElementById('viewDateText');
+const showMoreText = document.getElementById('showMoreText');
+
+/* ---------- Utilities ---------- */
+/* fmtLikes: abbreviate thousands and millions:
+   - >=1,000,000 -> truncate to 1 decimal (floor) and omit .0 for exact ints (1M)
+   - >=1,000 -> show K with one decimal when needed (remove trailing .0)
+   - <1,000 -> full number
+*/
+function fmtLikes(n){
+  n = Number(n)||0;
+  if(n>=1_000_000){
+    const v = Math.floor(n / 100000) / 10; // e.g. 1,887,991 -> 1.8
+    if(Math.abs(v - Math.round(v)) < 1e-9){
+      return String(Math.round(v)) + "M";
+    } else {
+      return v.toFixed(1) + "M";
+    }
+  }
+  if(n>=1000){
+    const k = Math.floor(n/100)/10; // 1,234 -> 1.2
+    const s = (Math.abs(k - Math.round(k)) < 1e-9) ? String(Math.round(k)) : k.toFixed(1);
+    return s + "K";
+  }
+  return String(n);
+}
+function fmtFullNumber(n){
+  return new Intl.NumberFormat('en-US').format(Number(n)||0);
+}
+function isHearted(c){
+  return !!(c && (c.is_favorited || c.is_hearted || c.is_hearted_by_uploader || c.is_liked_by_uploader || c.hearted || c.is_hearted_by_author));
+}
+function isEditedFromTimeText(c){
+  if(!c || !c._time_text) return false;
+  return c._time_text.toLowerCase().includes('edited');
+}
+function getLikeCount(c){ return Number(c && c.like_count) || 0; }
+function getReplyCount(c){ return Array.isArray(c && c.children) ? c.children.length : 0; }
+
+function pickTimestamp(c){
+  if(c && c.hasOwnProperty('timestamp_2') && c.timestamp_2 !== null && c.timestamp_2 !== undefined){
+    return {ts: c.timestamp_2, usedField: 'timestamp_2', isLegacy:false};
+  }
+  return {ts: c && c.timestamp, usedField: 'timestamp', isLegacy:true};
+}
+function pickTimelapse(c){
+  if(c && c.hasOwnProperty('timelapse_2') && c.timelapse_2){
+    return {text: c.timelapse_2, usedField: 'timelapse_2'};
+  }
+  if(c && c.hasOwnProperty('timelapse') && c.timelapse){
+    return {text: c.timelapse, usedField: 'timelapse'};
+  }
+  return {text: c && (c._time_text || ''), usedField: '_time_text'};
+}
+
+function formatDateForOption(ts, opt){
+  if((ts === null || ts === undefined) && ts !== 0) return "";
+  try {
+    const d = new Date(Number(ts)*1000);
+    if(isNaN(d.getTime())) return "";
+    if(opt === 'numeric'){
+      return new Intl.DateTimeFormat('en-US', {
+        month: '2-digit', day: '2-digit', year: 'numeric',
+        hour:'numeric', minute:'2-digit', second:'2-digit',
+        hour12: true
+      }).format(d);
+    } else if(opt === 'short'){
+      return new Intl.DateTimeFormat('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric',
+        hour:'numeric', minute:'2-digit', second:'2-digit',
+        hour12: true
+      }).format(d);
+    } else if(opt === 'long'){
+      return new Intl.DateTimeFormat('en-US', {
+        month: 'long', day: 'numeric', year: 'numeric',
+        hour:'numeric', minute:'2-digit', second:'2-digit',
+        hour12: true
+      }).format(d);
+    }
+    return d.toLocaleString();
+  } catch(e){
+    return "";
+  }
+}
+function formatDateWithSeconds(ts){ return formatDateForOption(ts, dateFormatOption); }
+
+/* short exact format "Jun 9, 2025 at 5:36:09 PM" style */
+function formatExactShort(ts){
+  if((ts === null || ts === undefined) && ts !== 0) return "";
+  try {
+    const d = new Date(Number(ts)*1000);
+    if(isNaN(d.getTime())) return "";
+    const datePart = new Intl.DateTimeFormat('en-US', { month:'short', day:'numeric', year:'numeric' }).format(d);
+    const timePart = new Intl.DateTimeFormat('en-US', { hour:'numeric', minute:'2-digit', second:'2-digit', hour12:true }).format(d);
+    return `${datePart} at ${timePart}`;
+  } catch(e){ return ""; }
+}
+
+/* human-friendly relative time */
+function relativeTimeAgo(ts){
+  if(!ts && ts !== 0) return "";
+  const now = Math.floor(Date.now()/1000);
+  let diff = now - Number(ts);
+  if(diff < 0) diff = 0;
+  if(diff < 60) return `${diff} second${diff===1?"":"s"} ago`;
+  const mins = Math.floor(diff/60);
+  if(mins < 60) return `${mins} minute${mins===1?"":"s"} ago`;
+  const hours = Math.floor(mins/60);
+  if(hours < 24) return `${hours} hour${hours===1?"":"s"} ago`;
+  const days = Math.floor(hours/24);
+  if(days < 7) return `${days} day${days===1?"":"s"} ago`;
+  if(days < 30){
+    const weeks = Math.floor(days/7);
+    return `${weeks} week${weeks===1?"":"s"} ago`;
+  }
+  if(days < 365){
+    const months = Math.floor(days/30);
+    return `${months} month${months===1?"":"s"} ago`;
+  }
+  const years = Math.floor(days/365);
+  return `${years} year${years===1?"":"s"} ago`;
+}
+
+function escapeHtml(str){ return (str||"").replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[m]); }
+function highlight(text,q){ if(!q) return escapeHtml(text||""); const esc = q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); const r = new RegExp('(' + esc + ')', 'gi'); return escapeHtml(text||"").replace(r,"<mark>$1</mark>"); }
+
+/* ---------- Description box behavior ---------- */
+function setDescriptionFromVideoMeta(){
+  const descTxt = (videoMeta && (videoMeta.description || videoMeta.full_description || "")) || "";
+  const trimmed = (descTxt || "").toString().trim();
+
+  // collapsed formatting rule: if < 1,000 show full number, otherwise abbreviate (per user)
+  const viewsNum = (videoMeta && (videoMeta.view_count || videoMeta.views || videoMeta.viewCount)) ? Number(videoMeta.view_count || videoMeta.views || videoMeta.viewCount) : 0;
+  const shortViews = (viewsNum < 1000) ? fmtFullNumber(viewsNum) : fmtLikes(viewsNum);
+  const fullViews = fmtFullNumber(viewsNum);
+
+  const tsPick = pickTimestamp(videoMeta);
+  const ts = tsPick && tsPick.ts ? tsPick.ts : null;
+
+  if(!descExpanded){
+    let rel = "";
+    if(ts){
+      rel = relativeTimeAgo(ts);
+    } else {
+      const tl = pickTimelapse(videoMeta);
+      rel = (tl && tl.text) ? tl.text : "N/A";
+    }
+    viewDateText.innerHTML = `${escapeHtml(shortViews)} views&nbsp;&nbsp;${escapeHtml(rel)}`;
+    viewDateText.classList.add('collapsed');
+    viewDateText.classList.remove('expanded');
+    showMoreText.textContent = '...more';
+    descBox.setAttribute('aria-expanded','false');
+    descContent.classList.remove('expanded');
+    descContent.classList.add('collapsed');
+  } else {
+    let exact = "";
+    if(ts){
+      exact = formatExactShort(ts);
+    } else {
+      const tl = pickTimelapse(videoMeta);
+      exact = (tl && tl.text) ? tl.text : "";
+    }
+    viewDateText.innerHTML = `${escapeHtml(fullViews)} views&nbsp;&nbsp;${escapeHtml(exact)}`;
+    viewDateText.classList.remove('collapsed');
+    viewDateText.classList.add('expanded');
+    showMoreText.textContent = 'Show less';
+    descBox.setAttribute('aria-expanded','true');
+    descContent.classList.remove('collapsed');
+    descContent.classList.add('expanded');
+  }
+
+  if(!trimmed){
+    // placeholder text when no description
+    descContent.textContent = "No description has been added to this video.";
+    descContent.classList.remove('expanded');
+    descContent.classList.add('collapsed');
+    descContent.classList.add('empty');
+    showMoreText.style.display = 'none';
+    return;
+  } else {
+    descContent.classList.remove('empty');
+  }
+
+  descContent.textContent = descTxt;
+
+  const maybeShort = descTxt.length < 220;
+  if(maybeShort){
+    showMoreText.style.display = 'none';
+  } else {
+    showMoreText.style.display = '';
+  }
+}
+
+/* toggle handlers */
+function toggleDescExpanded(e){
+  descExpanded = !descExpanded;
+  setDescriptionFromVideoMeta();
+}
+if(descBox){
+  descBox.addEventListener('click', toggleDescExpanded);
+  descBox.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      toggleDescExpanded();
+    }
+  });
+}
+if(showMoreText) showMoreText.addEventListener('click', (ev) => { ev.stopPropagation(); toggleDescExpanded(); });
+
+/* ---------- Build tree & rendering ---------- */
+function buildTreeWithMap(comments){
+  const map = {};
+  comments.forEach(c => { if(!c || !c.id) return; map[c.id] = {...c, children: []}; });
+  const roots = [];
+  Object.values(map).forEach(c => {
+    if(!c.parent || c.parent === "root") roots.push(c);
+    else if(map[c.parent]) map[c.parent].children.push(c);
+    else roots.push(c);
+  });
+  return { roots, map };
+}
+
+function collectDescendantsFromFiltered(root){
+  const out = [];
+  function dfs(node){
+    if(!node.children) return;
+    node.children.forEach(child => {
+      out.push(child);
+      dfs(child);
+    });
+  }
+  dfs(root);
+  out.sort((a,b) => (pickTimestamp(a).ts || 0) - (pickTimestamp(b).ts || 0));
+  return out;
+}
+
+function countAllDescendants(node){
+  let count = 0;
+  function dfs(n){
+    if(!n.children) return;
+    n.children.forEach(child => {
+      count++;
+      dfs(child);
+    });
+  }
+  dfs(node);
+  return count;
+}
+
+function matchesNode(node, q){
+  if(!q) return true;
+  q = q.toLowerCase();
+  const author = (node && (node.author || "")).toString().toLowerCase();
+  const text = (node && (node.text || "")).toString().toLowerCase();
+  return author.includes(q) || text.includes(q);
+}
+
+/* date filters */
+function getDateFilterRange() {
+  const opt = dateFilterOption || 'all';
+  const nowMs = Date.now();
+  if(opt === 'all') return null;
+  if(opt === 'last24') return { from: Math.floor((nowMs - 24*3600*1000)/1000), to: Math.floor(nowMs/1000) };
+  if(opt === 'last7') return { from: Math.floor((nowMs - 7*24*3600*1000)/1000), to: Math.floor(nowMs/1000) };
+  if(opt === 'last30') return { from: Math.floor((nowMs - 30*24*3600*1000)/1000), to: Math.floor(nowMs/1000) };
+  if(opt === 'thisyear') {
+    const y = new Date().getFullYear();
+    const fromMs = new Date(y,0,1).getTime();
+    return { from: Math.floor(fromMs/1000), to: Math.floor(nowMs/1000) };
+  }
+  if(opt === 'custom') {
+    if(!dateFilterCustomFrom && !dateFilterCustomTo) return null;
+    const f = dateFilterCustomFrom ? Math.floor(new Date(dateFilterCustomFrom).getTime()/1000) : null;
+    const t = dateFilterCustomTo ? Math.floor(new Date(dateFilterCustomTo).getTime()/1000) : null;
+    if(f === null && t === null) return null;
+    return { from: f, to: t };
+  }
+  return null;
+}
+function matchesDate(node, range) {
+  if(!range) return true;
+  const ts = pickTimestamp(node).ts;
+  if(ts === null || ts === undefined) return false;
+  if(range.from !== null && range.from !== undefined && ts < range.from) return false;
+  if(range.to !== null && range.to !== undefined && ts > range.to) return false;
+  return true;
+}
+
+function filterNodeForQueryAndDate(node, q, range){
+  const nodeMatches = matchesNode(node, q) && matchesDate(node, range);
+  const filteredChildren = [];
+  if(Array.isArray(node.children)){
+    for(const ch of node.children){
+      const res = filterNodeForQueryAndDate(ch, q, range);
+      if(res) filteredChildren.push(res);
+    }
+  }
+  if(nodeMatches || filteredChildren.length){
+    return { ...node, children: filteredChildren };
+  }
+  return null;
+}
+
+/* ---------- Pagination helpers ---------- */
+function computePagination(roots){
+  const total = Array.isArray(roots) ? roots.length : 0;
+  const perPage = Number(pageSize) || 50;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  if(currentPage > totalPages) currentPage = totalPages;
+  if(currentPage < 1) currentPage = 1;
+  const startIndex = (currentPage - 1) * perPage;
+  const endIndex = Math.min(total, startIndex + perPage);
+  const pageSlice = (Array.isArray(roots) ? roots.slice(startIndex, endIndex) : []);
+  return { total, perPage, totalPages, startIndex, endIndex, pageSlice };
+}
+function updatePaginationControls(roots){
+  const p = computePagination(roots);
+  const controls = document.getElementById('paginationControls');
+  const pageInfo = document.getElementById('pageInfo');
+  const totalPagesEl = document.getElementById('totalPages');
+  const gotoPage = document.getElementById('gotoPage');
+
+  if(p.total === 0){
+    controls.style.display = 'none';
+  } else {
+    controls.style.display = 'flex';
+    pageInfo.textContent = `Showing ${p.startIndex + 1}–${p.endIndex} of ${p.total} comments`;
+    totalPagesEl.textContent = `of ${p.totalPages}`;
+    gotoPage.value = currentPage;
+
+    document.getElementById('firstPage').disabled = (currentPage === 1);
+    document.getElementById('prevPage').disabled = (currentPage === 1);
+    document.getElementById('nextPage').disabled = (currentPage === p.totalPages);
+    document.getElementById('lastPage').disabled = (currentPage === p.totalPages);
+  }
+}
+
+/* ---------- Rendering ---------- */
+function render(comments, container, depth=0, query="", sortType="likes_desc"){
+  container.innerHTML = "";
+
+  let list;
+  if(depth === 0 && (!query || query === "")) {
+    const starred = comments.filter(c => c && starredSet.has(String(c.id)));
+    const pinned = comments.filter(c => c && c.is_pinned && !starredSet.has(String(c.id)));
+    const others = comments.filter(c => c && !c.is_pinned && !starredSet.has(String(c.id)));
+
+    const sortFn = (a,b) => {
+      if(sortType === "new") return (pickTimestamp(b).ts||0) - (pickTimestamp(a).ts||0);
+      if(sortType === "old") return (pickTimestamp(a).ts||0) - (pickTimestamp(b).ts||0);
+      if(sortType === "likes_asc") return getLikeCount(a) - getLikeCount(b);
+      if(sortType === "replies_desc") return getReplyCount(b) - getReplyCount(a);
+      if(sortType === "replies_asc") return getReplyCount(a) - getReplyCount(b);
+      return getLikeCount(b) - getLikeCount(a);
+    };
+
+    starred.sort(sortFn);
+    pinned.sort(sortFn);
+    others.sort(sortFn);
+    list = starred.concat(pinned, others);
+  } else {
+    const pinned = comments.filter(c => c && c.is_pinned);
+    const others = comments.filter(c => c && !c.is_pinned);
+    const sortFn = (a,b) => {
+      if(depth > 0){
+        const ta = pickTimestamp(a).ts || 0;
+        const tb = pickTimestamp(b).ts || 0;
+        return ta - tb;
+      }
+      if(sortType === "new") return (pickTimestamp(b).ts||0) - (pickTimestamp(a).ts||0);
+      if(sortType === "old") return (pickTimestamp(a).ts||0) - (pickTimestamp(b).ts||0);
+      if(sortType === "likes_asc") return getLikeCount(a) - getLikeCount(b);
+      if(sortType === "replies_desc") return getReplyCount(b) - getReplyCount(a);
+      if(sortType === "replies_asc") return getReplyCount(a) - getReplyCount(b);
+      return getLikeCount(b) - getLikeCount(a);
+    };
+    pinned.sort(sortFn);
+    others.sort(sortFn);
+    list = pinned.concat(others);
+  }
+
+  let toRender = list;
+  if(depth === 0){
+    lastRenderedRoots = list;
+    const p = computePagination(list);
+    toRender = p.pageSlice;
+    updatePaginationControls(list);
+  }
+
+  toRender.forEach(c => renderSingleComment(c, container, depth, query, sortType, false));
+}
+
+/* helper to create snippet for parent */
+function renderParentSnippet(parent){
+  const box = document.createElement('div');
+  box.className = 'orig-snippet';
+  const author = parent.author || parent.author_id || 'Unknown';
+  const date = formatDateWithSeconds(pickTimestamp(parent).ts) || parent._time_text || '';
+  const text = parent.text || '';
+  const h = document.createElement('div');
+  h.style.fontWeight = '700';
+  h.style.marginBottom = '6px';
+  h.textContent = `${author} • ${date}`;
+  const t = document.createElement('div');
+  t.style.whiteSpace = 'pre-wrap';
+  t.textContent = text;
+  box.appendChild(h);
+  box.appendChild(t);
+  return box;
+}
+
+/* Render single comment (uses comment._source_video_id when opening on date-click) */
+function createAvatarElement(comment){
+  const thumb = (comment && comment.author_thumbnail) ? String(comment.author_thumbnail).trim() : "";
+  if(thumb){
+    const img = document.createElement('img');
+    img.className = 'avatar';
+    img.src = thumb;
+    img.alt = '';
+    img.onerror = function(){
+      try {
+        const f = document.createElement('div');
+        f.className = 'avatar-fallback';
+        f.textContent = '';
+        if(this.parentNode) this.parentNode.replaceChild(f, this);
+      } catch(e){}
+    };
+    return img;
+  } else {
+    const f = document.createElement('div');
+    f.className = 'avatar-fallback';
+    f.textContent = '';
+    return f;
+  }
+}
+
+function createTextBlock(comment, query){
+  const container = document.createElement('div');
+  container.className = 'text-block';
+  const fullText = comment && comment.text ? String(comment.text) : '';
+  const highlighted = highlight(fullText, query);
+  if(fullText.length <= SHOW_MORE_CUTOFF){
+    const d = document.createElement('div');
+    d.className = 'text';
+    d.innerHTML = highlighted;
+    container.appendChild(d);
+    return container;
+  }
+  const preview = fullText.slice(0, SHOW_MORE_CUTOFF);
+  const previewHighlighted = highlight(preview, query);
+  const shortDiv = document.createElement('div');
+  shortDiv.className = 'text short';
+  shortDiv.innerHTML = previewHighlighted + '...';
+  const longDiv = document.createElement('div');
+  longDiv.className = 'text long';
+  longDiv.style.display = 'none';
+  longDiv.innerHTML = highlighted;
+  const btn = document.createElement('button');
+  btn.className = 'show-more-btn';
+  btn.textContent = 'Show more';
+  btn.onclick = () => {
+    const isHidden = longDiv.style.display === 'none';
+    longDiv.style.display = isHidden ? '' : 'none';
+    shortDiv.style.display = isHidden ? 'none' : '';
+    btn.textContent = isHidden ? 'Show less' : 'Show more';
+  };
+  container.appendChild(shortDiv);
+  container.appendChild(longDiv);
+  container.appendChild(btn);
+  return container;
+}
+
+function renderSingleComment(c, container, depth, query, sortType, forceExpandNested = false){
+  const wrap = document.createElement("div");
+  wrap.className = "comment" + (depth ? " indent" : "");
+  wrap.dataset.id = c.id || '';
+  wrap.style.position = wrap.style.position || 'relative';
+
+  const avatarEl = createAvatarElement(c);
+  const body = document.createElement("div");
+  body.className = "comment-body";
+
+  if(c._parent){
+    const showBtn = document.createElement('button');
+    showBtn.type = 'button';
+    showBtn.className = 'show-more-btn';
+    showBtn.textContent = 'Show parent';
+    let shown = false;
+    let snippet = null;
+    showBtn.onclick = (ev) => {
+      ev.stopPropagation();
+      shown = !shown;
+      if(shown){
+        snippet = renderParentSnippet(c._parent);
+        body.insertBefore(snippet, body.firstChild);
+        showBtn.textContent = 'Hide parent';
+      } else {
+        if(snippet && snippet.parentNode) snippet.parentNode.removeChild(snippet);
+        snippet = null;
+        showBtn.textContent = 'Show parent';
+      }
+    };
+    body.appendChild(showBtn);
+  }
+
+  const headerRow = document.createElement('div');
+  headerRow.className = 'author-row';
+
+  const left = document.createElement('div');
+  left.style.display = 'flex';
+  left.style.alignItems = 'center';
+  left.style.gap = '8px';
+  left.style.minWidth = '0';
+
+  const name = document.createElement("div");
+  name.className = "author";
+
+  let authorAnchor;
+  if(c && c.author_id){
+    authorAnchor = document.createElement("a");
+    authorAnchor.href = 'https://www.youtube.com/channel/' + encodeURIComponent(c.author_id);
+    authorAnchor.target = "_blank";
+    authorAnchor.rel = "noopener";
+    authorAnchor.className = "author-link";
+    authorAnchor.textContent = c.author || c.author_id;
+
+    const sourceChannel = (c && (c._source_channel_id || c.source_channel_id)) || (videoMeta && videoMeta.channel_id);
+    if(sourceChannel && c.author_id && String(c.author_id) === String(sourceChannel)){
+      authorAnchor.classList.add('uploader-handle');
+      authorAnchor.title = "Comment by channel owner";
+    }
+
+    const isVerified = (c && (c.author_is_verified === true || c.author_is_verified === "true" || (c.author_badges && Array.isArray(c.author_badges) && c.author_badges.includes('VERIFIED'))));
+    if(isVerified){
+      const icon = document.createElement('span');
+      icon.className = 'material-symbols-outlined verified-icon';
+      icon.setAttribute('aria-hidden','true');
+      icon.textContent = 'check_circle';
+      authorAnchor.appendChild(icon);
+    }
+
+  } else if(c && c.author_url){
+    authorAnchor = document.createElement("a");
+    authorAnchor.href = c.author_url;
+    authorAnchor.target = "_blank";
+    authorAnchor.rel = "noopener";
+    authorAnchor.className = "author-link";
+    authorAnchor.textContent = c.author || c.author_url;
+  } else {
+    authorAnchor = document.createElement("span");
+    authorAnchor.textContent = (c && c.author) || "Unknown";
+  }
+  name.appendChild(authorAnchor);
+  left.appendChild(name);
+
+  const tsPick = pickTimestamp(c);
+  const badges = [];
+  if(c && c.is_pinned) badges.push({cls:'pinned-badge', text:'Pinned 📌'});
+  if(isHearted(c)) badges.push({cls:'hearted-badge', text:'Hearted ❤️'});
+  if(tsPick.isLegacy) badges.push({cls:'legacy-badge', text:'Legacy 🕓'});
+  badges.forEach(b => {
+    const span = document.createElement('span');
+    span.className = b.cls;
+    span.textContent = b.text;
+    left.appendChild(span);
+  });
+
+  headerRow.appendChild(left);
+
+  if(depth === 0 && !c._parent){
+    const starBtn = document.createElement('button');
+    starBtn.className = 'star-btn';
+    if(starredSet.has(String(c.id))) starBtn.classList.add('starred');
+    starBtn.title = starredSet.has(String(c.id)) ? 'Unstar comment' : 'Star comment';
+    starBtn.type = 'button';
+    starBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path class="star-outline" d="M12 17.3l6.18 3.73-1.64-7.03L21 9.24l-7.19-.62L12 2 10.19 8.62 3 9.24l4.46 4.76-1.64 7.03L12 17.3z"></path>
+        <path class="star-filled" d="M12 17.3l6.18 3.73-1.64-7.03L21 9.24l-7.19-.62L12 2 10.19 8.62 3 9.24l4.46 4.76-1.64 7.03L12 17.3z"></path>
+      </svg>
+    `;
+    starBtn.onclick = (e) => { e.stopPropagation(); toggleStar(c.id); };
+    headerRow.appendChild(starBtn);
+  } else {
+    const spacer = document.createElement('div');
+    spacer.style.width = '34px';
+    headerRow.appendChild(spacer);
+  }
+
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  const exact = formatDateWithSeconds(tsPick.ts);
+  meta.textContent = exact || (c && c._time_text || "");
+  if(isEditedFromTimeText(c)) meta.textContent += " (edited)";
+  meta.dataset.exactTimestamp = exact || "";
+  meta.title = `${tsPick.usedField}${tsPick.ts ? ' — ' + (new Date(Number(tsPick.ts)*1000).toISOString()) : ''}`;
+
+  meta.onclick = () => {
+    const commentVid = (c && (c._source_video_id || c.source_video_id)) || videoId;
+    if(!commentVid) return;
+    try { window.open('https://www.youtube.com/watch?v=' + encodeURIComponent(commentVid) + '&lc=' + encodeURIComponent(c.id)); } catch(e){}
+  };
+
+  let tlText = "";
+  if(tsPick.ts){
+    tlText = relativeTimeAgo(tsPick.ts);
+  } else {
+    const tl = pickTimelapse(c);
+    tlText = tl && tl.text ? tl.text : "";
+  }
+  const tlDiv = document.createElement('div');
+  tlDiv.className = "timelapse";
+  tlDiv.textContent = tlText || "";
+
+  const textBlock = createTextBlock(c, query);
+
+  const actions = document.createElement("div");
+  actions.className = "comment-actions";
+  const like = document.createElement("div");
+  like.className = "likes";
+  like.textContent = "👍 " + fmtLikes(getLikeCount(c));
+  like.title = "Like count (read-only)";
+  actions.appendChild(like);
+
+  body.appendChild(headerRow);
+  body.appendChild(meta);
+  if(tlDiv.textContent) body.appendChild(tlDiv);
+  body.appendChild(textBlock);
+  body.appendChild(actions);
+
+  const totalDesc = c && c.children ? countAllDescendants(c) : 0;
+  if(c && c.children && c.children.length){
+    const expandedState = (expanded[c.id] !== undefined) ? expanded[c.id] : showAllRepliesDefault;
+    const shouldShowChildren = forceExpandNested || expandedState;
+
+    const rt = document.createElement("button");
+    rt.className = "reply-toggle";
+    rt.type = "button";
+
+    if(!shouldShowChildren){
+      const label = (totalDesc === 1) ? "1 reply" : `${totalDesc} replies`;
+      rt.textContent = label;
+    } else {
+      rt.textContent = "Hide replies";
+    }
+
+    rt.onclick = (ev) => {
+      ev.stopPropagation();
+      const cur = (expanded[c.id] !== undefined) ? expanded[c.id] : showAllRepliesDefault;
+      expanded[c.id] = !cur;
+      refresh();
+    };
+    body.appendChild(rt);
+
+    if(shouldShowChildren){
+      if(flattenReplies){
+        const descendants = collectDescendantsFromFiltered(c);
+        const replyBox = document.createElement('div');
+        descendants.forEach(child => {
+          const shallow = {...child, children: []};
+          renderSingleComment(shallow, replyBox, depth+1, query, sortType, false);
+        });
+        body.appendChild(replyBox);
+      } else {
+        const replies = Array.isArray(c.children) ? c.children.slice() : [];
+        const pinnedReplies = replies.filter(r => r && r.is_pinned).sort((a,b) => (pickTimestamp(a).ts||0) - (pickTimestamp(b).ts||0));
+        const otherReplies = replies.filter(r => r && !r.is_pinned).sort((a,b) => (pickTimestamp(a).ts||0) - (pickTimestamp(b).ts||0));
+        const sortedReplies = pinnedReplies.concat(otherReplies);
+        const replyBox = document.createElement("div");
+        sortedReplies.forEach(child => {
+          renderSingleComment(child, replyBox, depth+1, query, sortType, false);
+        });
+        body.appendChild(replyBox);
+      }
+    }
+
+    const handle = document.createElement('div');
+    handle.className = 'reply-line-handle';
+    handle.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      const cur = (expanded[c.id] !== undefined) ? expanded[c.id] : showAllRepliesDefault;
+      const willCollapse = !!cur;
+      expanded[c.id] = !cur;
+      refresh();
+      if(willCollapse){
+        setTimeout(() => {
+          const el = document.querySelector(`[data-id="${c.id}"]`);
+          if(el) {
+            try { el.scrollIntoView({behavior: 'smooth', block: 'center'}); } catch(e){ el.scrollIntoView(); }
+          }
+        }, 60);
+      }
+    }, false);
+
+    wrap.appendChild(handle);
+  }
+
+  wrap.appendChild(avatarEl);
+  wrap.appendChild(body);
+  container.appendChild(wrap);
+}
+
+/* ---------- Promotion logic ---------- */
+function buildFilteredRootsForQueryAndDate(allRoots, map, q, range){
+  const out = [];
+  const addedIds = new Set();
+
+  function collectMatchingNodes(node){
+    const matches = [];
+    function dfs(n){
+      if(!n) return;
+      if(matchesNode(n, q) && matchesDate(n, range)) matches.push(n);
+      if(Array.isArray(n.children)){
+        for(const ch of n.children) dfs(ch);
+      }
+    }
+    dfs(node);
+    return matches;
+  }
+
+  for(const root of allRoots){
+    const filtered = filterNodeForQueryAndDate(root, q, range);
+    if(!filtered) continue;
+
+    if(matchesNode(root, q) && matchesDate(root, q)){
+      out.push(filtered);
+      addedIds.add(filtered.id);
+    } else {
+      const matchingNodes = collectMatchingNodes(filtered);
+      for(const m of matchingNodes){
+        if(!m.parent || m.parent === 'root') {
+          if(!addedIds.has(m.id)){ out.push(m); addedIds.add(m.id); }
+          continue;
+        }
+        const promoted = {...m, children: []};
+        const immediateParent = map[m.parent] ? {...map[m.parent], children: []} : null;
+        if(immediateParent) promoted._parent = immediateParent;
+        if(!addedIds.has(promoted.id)){ out.push(promoted); addedIds.add(promoted.id); }
+      }
+    }
+  }
+  return out;
+}
+
+/* ---------- Refresh / Search / Pagination ---------- */
+function refresh(){
+  const qRaw = document.getElementById("searchBar").value.trim();
+  const q = qRaw.toLowerCase();
+  const sortType = document.getElementById("sort").value;
+  showAllRepliesDefault = document.getElementById("showAllReplies").checked;
+
+  const { roots, map } = buildTreeWithMap(rawComments);
+  mapById = map;
+
+  const range = getDateFilterRange();
+
+  let rootsToRender = [];
+
+  if(!q && !range){
+    rootsToRender = roots;
+  } else {
+    rootsToRender = buildFilteredRootsForQueryAndDate(roots, map, q, range);
+  }
+
+  if(flattenReplies){
+    const flattenedRoots = rootsToRender.map(root => {
+      const clonedRoot = { ...root };
+      const descendants = collectDescendantsFromFiltered(root);
+      clonedRoot.children = descendants.map(d => ({ ...d, children: [] }));
+      return clonedRoot;
+    });
+    render(flattenedRoots, document.getElementById("comments"), 0, qRaw, sortType);
+    lastRenderedRoots = flattenedRoots;
+    updatePaginationControls(flattenedRoots);
+    return;
+  }
+
+  render(rootsToRender, document.getElementById("comments"), 0, qRaw, sortType);
+  lastRenderedRoots = rootsToRender;
+  updatePaginationControls(rootsToRender);
+}
+
+/* ---------- Pagination wiring ---------- */
+document.getElementById('pageSizeSelect').value = pageSize;
+document.getElementById('pageSizeSelect').onchange = (e) => {
+  pageSize = Number(e.target.value) || 50;
+  try { localStorage.setItem('yt_comments_page_size', pageSize); } catch(e){}
+  currentPage = 1; refresh();
+};
+document.getElementById('firstPage').onclick = () => { currentPage = 1; refresh(); };
+document.getElementById('prevPage').onclick = () => { currentPage = Math.max(1, currentPage - 1); refresh(); };
+document.getElementById('nextPage').onclick = () => {
+  const roots = lastRenderedRoots || [];
+  const totalPages = Math.max(1, Math.ceil(roots.length / pageSize));
+  currentPage = Math.min(totalPages, currentPage + 1);
+  refresh();
+};
+document.getElementById('lastPage').onclick = () => {
+  const roots = lastRenderedRoots || [];
+  const totalPages = Math.max(1, Math.ceil(roots.length / pageSize));
+  currentPage = totalPages; refresh();
+};
+document.getElementById('gotoPage').onchange = (e) => {
+  const v = Number(e.target.value) || 1;
+  const roots = lastRenderedRoots || [];
+  const totalPages = Math.max(1, Math.ceil(roots.length / pageSize));
+  const desired = Math.max(1, Math.min(totalPages, Math.floor(v)));
+  currentPage = desired; refresh();
+};
+
+/* ---------- Flatten / Date filter UI ---------- */
+const flattenCheckbox = document.getElementById('flattenReplies');
+flattenCheckbox.checked = flattenReplies;
+flattenCheckbox.onchange = () => {
+  flattenReplies = !!flattenCheckbox.checked;
+  try { localStorage.setItem('yt_comments_flatten', flattenReplies ? 'true' : 'false'); } catch(e){}
+  currentPage = 1; refresh();
+};
+
+const dateSelect = document.getElementById('dateFilterSelect');
+const customInputs = document.getElementById('customDateInputs');
+const dateFromInput = document.getElementById('dateFrom');
+const dateToInput = document.getElementById('dateTo');
+const applyDateBtn = document.getElementById('applyDateFilter');
+
+function syncDateFilterUI(){
+  dateSelect.value = dateFilterOption || 'all';
+  customInputs.style.display = (dateFilterOption === 'custom') ? 'inline-flex' : 'none';
+  dateFromInput.value = dateFilterCustomFrom || '';
+  dateToInput.value = dateFilterCustomTo || '';
+}
+syncDateFilterUI();
+
+dateSelect.onchange = () => {
+  dateFilterOption = dateSelect.value;
+  try { localStorage.setItem('yt_comments_date_filter', dateFilterOption); } catch(e){}
+  if(dateFilterOption !== 'custom') { currentPage = 1; syncDateFilterUI(); refresh(); } else syncDateFilterUI();
+};
+
+applyDateBtn.onclick = () => {
+  dateFilterCustomFrom = dateFromInput.value || '';
+  dateFilterCustomTo = dateToInput.value || '';
+  try {
+    localStorage.setItem('yt_comments_date_from', dateFilterCustomFrom);
+    localStorage.setItem('yt_comments_date_to', dateFilterCustomTo);
+    localStorage.setItem('yt_comments_date_filter', 'custom');
+    dateFilterOption = 'custom';
+  } catch(e){}
+  currentPage = 1; refresh();
+};
+
+/* ---------- Theme & Date format ---------- */
+function applyTheme(name){
+  document.body.classList.remove('yt-dark','yt-gray');
+  if(name === 'yt-dark') document.body.classList.add('yt-dark');
+  else if(name === 'yt-gray') document.body.classList.add('yt-gray');
+  try { localStorage.setItem('yt_comments_theme', name); } catch(e){}
+}
+document.getElementById('themeSelect').onchange = (e) => applyTheme(e.target.value);
+try {
+  const saved = localStorage.getItem('yt_comments_theme') || 'light';
+  document.getElementById('themeSelect').value = saved;
+  applyTheme(saved);
+} catch(e){}
+
+const dateFormatSelect = document.getElementById('dateFormat');
+dateFormatSelect.value = dateFormatOption;
+dateFormatSelect.onchange = () => {
+  dateFormatOption = dateFormatSelect.value;
+  try { localStorage.setItem('yt_comments_date_format', dateFormatOption); } catch(e){}
+  refresh();
+};
+
+/* ---------- Visibility helper ---------- */
+function determineVisibility(j){
+  if(!j) return "N/A";
+  if(j.hasOwnProperty('availability')){
+    const v = String(j.availability || '').toLowerCase();
+    if(v.includes('private')) return 'Private';
+    if(v.includes('unlisted')) return 'Unlisted';
+    if(v.includes('public')) return 'Public';
+    return j.availability || 'N/A';
+  }
+  const v = (j.visibility || j.privacy_status || j.visibility_status || j.privacy || j.upload_privacy || j.upload_visibility);
+  if(v && typeof v === 'string') {
+    const lower = v.toLowerCase();
+    if(lower.includes('private')) return 'Private';
+    if(lower.includes('unlisted')) return 'Unlisted';
+    if(lower.includes('public')) return 'Public';
+  }
+  if(j.is_private === true || j.private === true) return 'Private';
+  if(j.is_unlisted === true || j.unlisted === true) return 'Unlisted';
+  return 'N/A';
+}
+
+/* ---------- MULTI-FILE: combine comments, annotate source (now including _source_video_id) ---------- */
+function combineCommentsFromLoadedFiles(){
+  combinedCommentsMap = {};
+  // iterate in order of loadedFiles so earlier files win on duplicates
+  for(const f of loadedFiles){
+    const j = f.json;
+    const srcVideoId = extractVideoIdFromMeta(j);
+    const srcChannelId = j.channel_id || j.uploader_id || j.uploader_channel_id || null;
+    if(!j || !Array.isArray(j.comments)) continue;
+    for(const c of j.comments){
+      if(!c || !c.id) continue;
+      // annotate source channel id and video id for owner highlighting and correct linking
+      if(!c._source_channel_id) c._source_channel_id = srcChannelId;
+      if(!c._source_video_id) c._source_video_id = srcVideoId;
+      // keep first occurrence
+      if(!combinedCommentsMap[c.id]) combinedCommentsMap[c.id] = {...c};
+    }
+  }
+  // rebuild rawComments as array from map
+  rawComments = Object.values(combinedCommentsMap);
+}
+
+/* ---------- ACTIVE FILE UI ---------- */
+function updateActiveFileUI(){
+  const indicator = document.getElementById('fileIndicator');
+  const multiControls = document.getElementById('multiControls');
+
+  // show/hide multi controls based on allowMultipleFiles
+  if(allowMultipleFiles){
+    multiControls.style.display = 'inline-flex';
+  } else {
+    multiControls.style.display = 'none';
+  }
+
+  if(!allowMultipleFiles){
+    // if not multiple, ensure loadedFiles contains only the active file (or none)
+    if(loadedFiles.length > 1){
+      const keep = (activeFileIndex >= 0 && activeFileIndex < loadedFiles.length) ? loadedFiles[activeFileIndex] : loadedFiles[0];
+      loadedFiles = keep ? [keep] : [];
+      activeFileIndex = loadedFiles.length ? 0 : -1;
+    } else if(loadedFiles.length === 1){
+      activeFileIndex = 0;
+    } else {
+      activeFileIndex = -1;
+    }
+  }
+
+  if(loadedFiles.length === 0){
+    indicator.textContent = "No files loaded";
+    activeFileIndex = -1;
+    videoMeta = {};
+    document.getElementById('videoMeta').style.display = 'none';
+    combineCommentsFromLoadedFiles();
+    // update description UI as well
+    descContent.textContent = "";
+    viewDateText.textContent = "0 views\u00A0\u00A0N/A";
+    showMoreText.style.display = 'none';
+    // hide new video details
+    document.getElementById('videoDetails').style.display = 'none';
+    refresh();
+    return;
+  }
+
+  if(activeFileIndex < 0) activeFileIndex = 0;
+  if(activeFileIndex >= loadedFiles.length) activeFileIndex = loadedFiles.length - 1;
+  const f = loadedFiles[activeFileIndex];
+  indicator.textContent = `${activeFileIndex+1}/${loadedFiles.length} — ${f.name || (f.json && (f.json.title||f.json.fulltitle) ) || 'info.json'}`;
+
+  // Set videoMeta to active file's json so title/desc change while comments remain combined
+  videoMeta = f.json || {};
+  // set videoId for video link behaviors (best-effort)
+  videoId = extractVideoIdFromMeta(videoMeta);
+
+  // fill UI: title, counts, uploader etc using active file meta
+  const titleEl = document.getElementById('videoTitle'); titleEl.innerHTML = '';
+  const title = videoMeta.title || videoMeta.fulltitle || videoMeta.full_title || "";
+  if(title){
+    if(videoId){
+      const a = document.createElement('a');
+      a.href = 'https://www.youtube.com/watch?v=' + encodeURIComponent(videoId);
+      a.target = '_blank'; a.rel = 'noopener'; a.textContent = title;
+      titleEl.appendChild(a);
+    } else titleEl.textContent = title;
+  }
+
+  // hide the top "viewCount" bubble per your request
+  document.getElementById("viewCount").textContent = "";
+  document.getElementById("viewCount").style.display = "none";
+
+  try {
+    document.getElementById("videoLikeCount").textContent = (videoMeta.like_count || videoMeta.likes || videoMeta.video_like_count) ? `Likes: ${fmtLikes(videoMeta.like_count || videoMeta.likes || videoMeta.video_like_count)}` : "";
+  } catch(e){}
+  // subscriber count will be read from channel_follower_count per user request and shown in channelSubs area only
+  const subCandidates = (typeof videoMeta.channel_follower_count !== 'undefined' && videoMeta.channel_follower_count !== null)
+    ? videoMeta.channel_follower_count
+    : (videoMeta.channel_subscriber_count || videoMeta.subscriber_count || videoMeta.subscribers || videoMeta.uploader_subscriber_count || videoMeta.channel_subscribers || videoMeta.sub_count);
+
+  try {
+    document.getElementById("subscriberCount").textContent = subCandidates ? `Subscribers: ${fmtLikes(subCandidates)}` : "";
+  } catch(e){}
+
+  // Populate NEW channel info section (displayed directly above description box)
+  const channelNameEl = document.getElementById('channelName');
+  const channelSubsEl = document.getElementById('channelSubs');
+  const likeStatEl = document.getElementById('likeStatCount');
+  const videoDetailsEl = document.getElementById('videoDetails');
+  const channelInfoEl = document.getElementById('channelInfo');
+
+  const uploaderName = videoMeta.uploader || videoMeta.channel || videoMeta.uploader_name || "";
+  let uploaderId = videoMeta.channel_id || videoMeta.uploader_id || videoMeta.uploader_channel_id || null;
+  if(!uploaderId && videoMeta.uploader_url){
+    try { const m = videoMeta.uploader_url.match(/\/channel\/([A-Za-z0-9_-]+)/); if(m) uploaderId = m[1]; } catch(e){}
+  }
+
+  if(uploaderName){
+    channelNameEl.textContent = uploaderName;
+    channelSubsEl.textContent = subCandidates ? `${fmtLikes(subCandidates)} subscribers` : '';
+    likeStatEl.textContent = (videoMeta.like_count || videoMeta.likes || 0) ? fmtLikes(videoMeta.like_count || videoMeta.likes || 0) : '0';
+
+    if(uploaderId){
+      channelInfoEl.onclick = () => {
+        window.open('https://www.youtube.com/channel/' + encodeURIComponent(uploaderId), '_blank', 'noopener');
+      };
+      channelInfoEl.style.cursor = 'pointer';
+      channelInfoEl.setAttribute('tabindex', '0');
+      channelInfoEl.onkeydown = (e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); channelInfoEl.onclick(); } };
+    } else {
+      channelInfoEl.onclick = null;
+      channelInfoEl.style.cursor = 'default';
+      channelInfoEl.onkeydown = null;
+    }
+
+    videoDetailsEl.style.display = '';
+  } else {
+    videoDetailsEl.style.display = 'none';
+  }
+
+  const uploaderWrap = document.getElementById("uploaderWrap"); uploaderWrap.innerHTML = "";
+  if(uploaderName){
+    if(uploaderId){
+      const a = document.createElement('a');
+      a.href = 'https://www.youtube.com/channel/' + encodeURIComponent(uploaderId);
+      a.target = '_blank'; a.rel = 'noopener'; a.className = 'author-link';
+      a.textContent = 'Uploader: ' + uploaderName;
+      uploaderWrap.appendChild(a);
+    } else if(videoMeta.uploader_url){
+      const a = document.createElement('a');
+      a.href = videoMeta.uploader_url;
+      a.target = '_blank'; a.rel = 'noopener'; a.className = 'author-link';
+      a.textContent = 'Uploader: ' + uploaderName;
+      uploaderWrap.appendChild(a);
+    } else uploaderWrap.textContent = 'Uploader: ' + uploaderName;
+  } else uploaderWrap.textContent = '';
+
+  const vis = determineVisibility(videoMeta);
+  const visEl = document.getElementById('videoVisibility');
+  if(vis){ visEl.style.display = 'inline-block'; visEl.textContent = vis; } else visEl.style.display = 'none';
+
+  const publishedEl = document.getElementById('publishedDate');
+  publishedEl.style.display = 'none';
+
+  const archivedEl = document.getElementById('archivedDate');
+  let archivedShown = false;
+  if(videoMeta && (videoMeta.epoch || videoMeta.archived_epoch || videoMeta.archived_at)){
+    const e = videoMeta.epoch || videoMeta.archived_epoch || videoMeta.archived_at;
+    const fmtE = formatDateWithSeconds(e);
+    if(fmtE){ archivedEl.textContent = `Archived: ${fmtE}`; archivedShown = true; archivedEl.style.display = 'inline-block'; } else archivedEl.style.display = 'none';
+  } else archivedEl.style.display = 'none';
+
+  const dateRow = document.getElementById('dateRow');
+  dateRow.style.display = archivedShown ? 'flex' : 'none';
+
+  // update description box content & view/date text and reset collapsed state when switching active file
+  descExpanded = false;
+  setDescriptionFromVideoMeta();
+
+  document.getElementById('prevFile').disabled = (activeFileIndex <= 0);
+  document.getElementById('nextFile').disabled = (activeFileIndex >= loadedFiles.length - 1);
+
+  document.getElementById('videoMeta').style.display = 'block';
+  // combine comments across files (if multiple allowed) or single active file
+  combineCommentsFromLoadedFiles();
+  refresh();
+}
+
+/* ---------- File loading ---------- */
+const fileInput = document.getElementById("fileInput");
+const allowMultipleCheckbox = document.getElementById("allowMultipleFiles");
+const multiControls = document.getElementById('multiControls');
+const clearFilesBtn = document.getElementById('clearFiles');
+
+allowMultipleFiles = false;
+allowMultipleCheckbox.checked = allowMultipleFiles;
+fileInput.multiple = allowMultipleFiles;
+
+allowMultipleCheckbox.addEventListener('change', () => {
+  allowMultipleFiles = !!allowMultipleCheckbox.checked;
+  fileInput.multiple = allowMultipleFiles;
+  if(!allowMultipleFiles){
+    if(loadedFiles.length > 1){
+      const keep = (activeFileIndex >= 0 && activeFileIndex < loadedFiles.length) ? loadedFiles[activeFileIndex] : loadedFiles[0];
+      loadedFiles = keep ? [keep] : [];
+      activeFileIndex = loadedFiles.length ? 0 : -1;
+    }
+  }
+  updateActiveFileUI();
+});
+
+fileInput.addEventListener('change', (e) => {
+  const selectedFiles = Array.from(e.target.files || []);
+  if(selectedFiles.length === 0) return;
+  if(!allowMultipleFiles){
+    const file = selectedFiles[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const j = JSON.parse(reader.result);
+        loadedFiles = [{ name: file.name || (j.title || 'info.json'), json: j }];
+        activeFileIndex = 0;
+        combineCommentsFromLoadedFiles();
+        updateActiveFileUI();
+      } catch(err){
+        alert(`Failed to parse ${file.name}: ${err.message}`);
+        console.error(err);
+      }
+    };
+    reader.readAsText(file);
+  } else {
+    addFiles(selectedFiles);
+  }
+  e.target.value = "";
+});
+
+function addFiles(fileList){
+  fileList.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const j = JSON.parse(reader.result);
+        loadedFiles.push({ name: file.name || (j.title || 'info.json'), json: j });
+        activeFileIndex = loadedFiles.length - 1;
+        combineCommentsFromLoadedFiles();
+        currentPage = 1;
+        updateActiveFileUI();
+      } catch(err){
+        alert(`Failed to parse ${file.name}: ${err.message}`);
+        console.error(err);
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
+/* Prev/Next file buttons */
+document.getElementById('prevFile').addEventListener('click', () => {
+  if(loadedFiles.length === 0) return;
+  activeFileIndex = Math.max(0, activeFileIndex - 1);
+  updateActiveFileUI();
+});
+document.getElementById('nextFile').addEventListener('click', () => {
+  if(loadedFiles.length === 0) return;
+  activeFileIndex = Math.min(loadedFiles.length - 1, activeFileIndex + 1);
+  updateActiveFileUI();
+});
+
+/* Clear-all button (×) */
+clearFilesBtn.addEventListener('click', () => {
+  if(!allowMultipleFiles) return;
+  if(!confirm('Remove all loaded .info.json files?')) return;
+  loadedFiles = [];
+  activeFileIndex = -1;
+  combineCommentsFromLoadedFiles();
+  updateActiveFileUI();
+});
+
+/* ---------- UI Hooks ---------- */
+document.getElementById("searchBar").oninput = () => { currentPage = 1; refresh(); };
+document.getElementById("sort").onchange = () => { currentPage = 1; refresh(); };
+document.getElementById("showAllReplies").onchange = () => { refresh(); };
+
+/* init date filter state */
+(function initDateFilterState(){
+  try {
+    const storedOpt = localStorage.getItem('yt_comments_date_filter') || 'all';
+    dateFilterOption = storedOpt;
+    dateFilterCustomFrom = localStorage.getItem('yt_comments_date_from') || '';
+    dateFilterCustomTo = localStorage.getItem('yt_comments_date_to') || '';
+  } catch(e){}
+  syncDateFilterUI();
+})();
+
+/* star toggle */
+function toggleStar(id){
+  if(!id) return;
+  id = String(id);
+  if(starredSet.has(id)) starredSet.delete(id);
+  else starredSet.add(id);
+  try { localStorage.setItem('yt_starred_comments', JSON.stringify(Array.from(starredSet))); } catch(e){}
+  currentPage = 1; refresh();
+}
+
+/* initialize UI */
+document.getElementById('fileIndicator').textContent = "No files loaded";
+document.getElementById('prevFile').disabled = true;
+document.getElementById('nextFile').disabled = true;
+document.getElementById('multiControls').style.display = 'none';
+
+// initial UI: allowMultiple unchecked (single-file mode)
+allowMultipleFiles = false;
+allowMultipleCheckbox.checked = allowMultipleFiles;
+fileInput.multiple = allowMultipleFiles;
+
+// ensure description has initial values
+descContent.textContent = "";
+viewDateText.textContent = "0 views\u00A0\u00A0N/A";
+showMoreText.style.display = 'none';
+</script>
+<!-- Model: GPT-5 Thinking mini -->
+</body>
+</html>
